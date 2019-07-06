@@ -101,9 +101,13 @@ def load_inference_data(FLAGS):
     all_file_path = glob.glob(FLAGS.data_dir + '/*')
 
     ret_LR_image = []
+    ret_filename = []
 
     for file in all_file_path:
         img = cv2.imread(file)
-        ret_LR_image.append(img)
+        img = normalize_images(img)
+        ret_LR_image.append(img[0][np.newaxis, ...])
 
-    return np.array(ret_LR_image)
+        ret_filename.append(file.rsplit('/', 1)[-1])
+
+    return ret_LR_image, ret_filename

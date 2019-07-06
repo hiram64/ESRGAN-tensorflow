@@ -112,12 +112,15 @@ def main():
                     tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake, labels=tf.ones_like(dis_out_fake)))
 
             # content loss : L1 distance
-            gen_loss += FLAGS.content_loss_coeff * tf.reduce_mean(
+            content_loss = FLAGS.content_loss_coeff * tf.reduce_mean(
                 tf.reduce_sum(tf.abs(gen_out - HR_data), axis=[1, 2, 3]))
+
+            gen_loss += content_loss
 
             # perceptual loss
             if FLAGS.perceptual_loss == 'pixel-wise':
-                gen_loss += tf.reduce_mean(tf.reduce_mean(tf.square(gen_out - HR_data), axis=3))
+                perc_loss = tf.reduce_mean(tf.reduce_mean(tf.square(gen_out - HR_data), axis=3))
+                gen_loss += perc_loss
 
         with tf.variable_scope('discriminator_loss'):
             if FLAGS.gan_loss_type == 'RaGAN':
@@ -153,6 +156,8 @@ def main():
     # summary writer
     tr_summary = tf.summary.merge([
         tf.summary.scalar('generator_loss', gen_loss),
+        tf.summary.scalar('content_loss', content_loss),
+        tf.summary.scalar('perceptual_loss', perc_loss),
         tf.summary.scalar('discriminator_loss', dis_loss),
         tf.summary.scalar('discriminator_fake_loss', d_loss_fake),
         tf.summary.scalar('discriminator_real_loss', d_loss_real)
