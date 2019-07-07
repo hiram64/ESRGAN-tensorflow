@@ -5,6 +5,7 @@ from sklearn.utils import shuffle
 import tensorflow as tf
 
 from lib.network import Generator
+from lib.ops import scale_initialization
 from lib.utils import normalize_images, save_image
 
 
@@ -44,6 +45,8 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(scale_initialization(pre_gen_var, FLAGS))
+
         writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph, filename_suffix='pre-train')
         global_iter = 0
 

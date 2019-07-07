@@ -5,6 +5,7 @@ from sklearn.utils import shuffle
 import tensorflow as tf
 
 from lib.network import Generator, Discriminator
+from lib.ops import scale_initialization
 from lib.pretrain_generator import train_pretrain_generator
 from lib.utils import create_dirs, normalize_images, save_image, load_npz_data, load_and_save_data
 
@@ -38,6 +39,7 @@ def set_flags():
     Flags.DEFINE_integer('batch_size', 32, 'Mini-batch size')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
     Flags.DEFINE_float('learning_rate', 2e-4, 'learning rate')
+    Flags.DEFINE_float('weight_initialize_scale', 0.1, 'scale to multiply after MSRA initialization')
     Flags.DEFINE_integer('HR_image_size', 128, 'Image width and height of HR image')
     Flags.DEFINE_integer('LR_image_size', 32,
                          'Image width and height of LR image. This size should be 1/4 of HR_image_size exactly.')
@@ -175,6 +177,7 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(scale_initialization(dis_var, FLAGS))
         writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph)
         global_iter = 0
 
