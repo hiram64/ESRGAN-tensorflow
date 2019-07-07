@@ -20,7 +20,7 @@ def set_flags():
     Flags.DEFINE_string('npz_data_dir', './data/npz', 'The npz data dir')
     Flags.DEFINE_string('HR_npz_filename', 'HR_image.npz', 'the filename of HR image npz file')
     Flags.DEFINE_string('LR_npz_filename', 'LR_image.npz', 'the filename of LR image npz file')
-    Flags.DEFINE_boolean('save_data', False, 'Whether to load and save data as npz file')
+    Flags.DEFINE_boolean('save_data', True, 'Whether to load and save data as npz file')
     Flags.DEFINE_string('train_result_dir', './train_result', 'output directory during training')
     Flags.DEFINE_boolean('crop', True, 'Whether image cropping is enabled')
     Flags.DEFINE_integer('crop_size', 128, 'the size of crop of training HR images')
@@ -40,9 +40,11 @@ def set_flags():
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
     Flags.DEFINE_float('learning_rate', 2e-4, 'learning rate')
     Flags.DEFINE_float('weight_initialize_scale', 0.1, 'scale to multiply after MSRA initialization')
-    Flags.DEFINE_integer('HR_image_size', 128, 'Image width and height of HR image')
+    Flags.DEFINE_integer('HR_image_size', 128,
+                         'Image width and height of HR image. This flag is valid when crop flag is set to false.')
     Flags.DEFINE_integer('LR_image_size', 32,
-                         'Image width and height of LR image. This size should be 1/4 of HR_image_size exactly.')
+                         'Image width and height of LR image. This size should be 1/4 of HR_image_size exactly. '
+                         'This flag is valid when crop flag is set to false.')
     Flags.DEFINE_integer('train_sample_save_freq', 1000, 'save samples during training every n iteration')
     Flags.DEFINE_integer('train_ckpt_save_freq', 2000, 'save checkpoint during training every n iteration')
     Flags.DEFINE_integer('train_summary_save_freq', 100, 'save summary during training every n iteration')
@@ -178,6 +180,7 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(scale_initialization(dis_var, FLAGS))
+
         writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph)
         global_iter = 0
 

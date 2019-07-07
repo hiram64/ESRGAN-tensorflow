@@ -10,7 +10,7 @@ from lib.utils import normalize_images, save_image
 
 
 def train_pretrain_generator(FLAGS, LR_train, HR_train):
-    """pre-train SRResNet as initialization weights of ESRGAN"""
+    """pre-train deep network as initialization weights of ESRGAN Generator"""
     LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
                              name='LR_input')
     HR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.HR_image_size, FLAGS.HR_image_size, FLAGS.channel],

@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -55,7 +57,8 @@ def main():
             }
 
             result = sess.run(fetches=fetches, feed_dict=feed_dict)
-            cv2.imwrite(FLAGS.inference_result_dir + '/' + LR_filenames[i],
+
+            cv2.imwrite(os.path.join(FLAGS.inference_result_dir, LR_filenames[i]),
                         de_normalize_image(np.squeeze(result['gen_HR'])))
 
 
