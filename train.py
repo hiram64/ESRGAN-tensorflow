@@ -177,9 +177,14 @@ def main():
 
     HR_train, LR_train = normalize_images(HR_train, LR_train)
 
+    fetches = {'dis_optimizer': dis_optimizer, 'gen_optimizer': gen_optimizer,
+               'dis_loss': dis_loss, 'gen_loss': gen_loss,
+               'gen_HR': gen_out,
+               'summary': tr_summary
+               }
+
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(scale_initialization(dis_var, FLAGS))
 
         writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph)
         global_iter = 0
@@ -196,12 +201,6 @@ def main():
             for iteration in range(num_batch_in_train):
                 if global_iter > FLAGS.num_iter:
                     break
-
-                fetches = {'dis_optimizer': dis_optimizer, 'gen_optimizer': gen_optimizer,
-                           'dis_loss': dis_loss, 'gen_loss': gen_loss,
-                           'gen_HR': gen_out,
-                           'summary': tr_summary
-                           }
 
                 feed_dict = {
                     HR_data: HR_train[iteration * FLAGS.batch_size:iteration * FLAGS.batch_size + FLAGS.batch_size],

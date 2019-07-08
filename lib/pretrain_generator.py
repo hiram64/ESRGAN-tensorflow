@@ -43,6 +43,9 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
 
     HR_train, LR_train = normalize_images(HR_train, LR_train)
 
+    fetches = {'pre_gen_loss': pre_gen_loss, 'pre_gen_optimizer': pre_gen_optimizer, 'gen_HR': pre_gen_out,
+               'summary': pre_summary}
+
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(scale_initialization(pre_gen_var, FLAGS))
@@ -57,9 +60,6 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
             for iteration in range(num_batch_in_train):
                 if global_iter > FLAGS.num_iter:
                     break
-
-                fetches = {'pre_gen_loss': pre_gen_loss, 'pre_gen_optimizer': pre_gen_optimizer, 'gen_HR': pre_gen_out,
-                           'summary': pre_summary}
 
                 feed_dict = {
                     HR_data: HR_train[iteration * FLAGS.batch_size:iteration * FLAGS.batch_size + FLAGS.batch_size],
