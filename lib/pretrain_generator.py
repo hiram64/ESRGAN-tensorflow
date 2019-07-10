@@ -50,7 +50,7 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
         sess.run(tf.global_variables_initializer())
         sess.run(scale_initialization(pre_gen_var, FLAGS))
 
-        writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph, filename_suffix='pre-train')
+        writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph, filename_suffix='pre-train')
         global_iter = 0
 
         for epoch in range(num_epoch):

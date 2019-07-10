@@ -53,7 +53,7 @@ def set_flags():
     Flags.DEFINE_float('content_loss_coeff', 0.01, 'used in perceptual loss')
     Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'checkpoint directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
-    Flags.DEFINE_string('log_dir', './log', 'log directory')
+    Flags.DEFINE_string('logdir', './log', 'log directory')
 
     return Flags.FLAGS
 
@@ -64,7 +64,7 @@ def main():
 
     # make dirs
     target_dirs = [FLAGS.HR_data_dir, FLAGS.LR_data_dir, FLAGS.npz_data_dir, FLAGS.train_result_dir,
-                   FLAGS.pre_train_checkpoint_dir, FLAGS.checkpoint_dir, FLAGS.log_dir]
+                   FLAGS.pre_train_checkpoint_dir, FLAGS.checkpoint_dir, FLAGS.logdir]
     create_dirs(target_dirs)
 
     # load data
@@ -186,7 +186,7 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        writer = tf.summary.FileWriter(FLAGS.log_dir, graph=sess.graph)
+        writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph)
         global_iter = 0
 
         pre_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
