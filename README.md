@@ -55,7 +55,7 @@ Coming soon!
 The following features have not been implemented apart from the paper.
 
 - [x] Perceptual loss using VGG19(currently pixel-wise loss is implemented instead)
-- [ ] Learning rate scheduling
+- [x] Learning rate scheduling
 - [ ] Network interpolation
 - [ ] Data augmentation
 - [ ] Evaluation metrics
