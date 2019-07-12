@@ -38,7 +38,9 @@ def set_flags():
     Flags.DEFINE_integer('num_iter', 20000, 'The number of iterations')
     Flags.DEFINE_integer('batch_size', 32, 'Mini-batch size')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
-    Flags.DEFINE_float('learning_rate', 2e-4, 'learning rate')
+    Flags.DEFINE_float('pretrain_learning_rate', 2e-4, 'learning rate for pretrain')
+    Flags.DEFINE_float('pretrain_lr_decay_step', 20000, 'decay by every n iteration')
+    Flags.DEFINE_float('learning_rate', 1e-4, 'learning rate')
     Flags.DEFINE_float('weight_initialize_scale', 0.1, 'scale to multiply after MSRA initialization')
     Flags.DEFINE_integer('HR_image_size', 128,
                          'Image width and height of HR image. This flag is valid when crop flag is set to false.')
@@ -160,17 +162,24 @@ def main():
                 dis_loss = d_loss_real + d_loss_fake
 
     # define optimizers
+    global_iter = tf.Variable(0, trainable=False)
+    boundaries = [50000, 100000, 200000, 300000]
+    values = [FLAGS.learning_rate, FLAGS.learning_rate * 0.5, FLAGS.learning_rate * 0.5 ** 2,
+              FLAGS.learning_rate * 0.5 ** 3, FLAGS.learning_rate * 0.5 ** 4]
+    learning_rate = tf.train.piecewise_constant(global_iter, boundaries, values)
+
     with tf.name_scope('optimizer'):
         with tf.variable_scope('discriminator_optimizer'):
             dis_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')
-            dis_optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss=dis_loss,
-                                                                                               var_list=dis_var)
+            dis_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=dis_loss,
+                                                                                         var_list=dis_var)
 
         with tf.variable_scope('generator_optimizer'):
             with tf.control_dependencies([dis_optimizer]):
                 gen_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
-                gen_optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss=gen_loss,
-                                                                                                   var_list=gen_var)
+                gen_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=gen_loss,
+                                                                                             global_step=global_iter,
+                                                                                             var_list=gen_var)
 
     # summary writer
     tr_summary = tf.summary.merge([
@@ -200,9 +209,9 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(global_iter.initializer)
 
         writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph)
-        global_iter = 0
 
         pre_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
         pre_saver.restore(sess, tf.train.latest_checkpoint(FLAGS.pre_train_checkpoint_dir))
@@ -217,7 +226,8 @@ def main():
             HR_train, LR_train = shuffle(HR_train, LR_train, random_state=222)
 
             for iteration in range(num_batch_in_train):
-                if global_iter > FLAGS.num_iter:
+                current_iter = tf.train.global_step(sess, global_iter)
+                if current_iter > FLAGS.num_iter:
                     break
 
                 feed_dict = {
@@ -229,20 +239,18 @@ def main():
                 result = sess.run(fetches=fetches, feed_dict=feed_dict)
 
                 # save summary every n iter
-                if global_iter % FLAGS.train_summary_save_freq == 0:
-                    writer.add_summary(result['summary'], global_step=global_iter)
+                if current_iter % FLAGS.train_summary_save_freq == 0:
+                    writer.add_summary(result['summary'], global_step=current_iter)
 
                 # save samples every n iter
-                if global_iter % FLAGS.train_sample_save_freq == 0:
-                    print('iteration : ', global_iter, ' gen_loss', result['gen_loss'])
-                    print('iteration : ', global_iter, ' dis_loss', result['dis_loss'])
+                if current_iter % FLAGS.train_sample_save_freq == 0:
+                    print('iteration : ', current_iter, ' gen_loss', result['gen_loss'])
+                    print('iteration : ', current_iter, ' dis_loss', result['dis_loss'])
 
-                    save_image(FLAGS, result['gen_HR'], 'train', global_iter, save_max_num=5)
+                    save_image(FLAGS, result['gen_HR'], 'train', current_iter, save_max_num=5)
 
-                if global_iter % FLAGS.train_ckpt_save_freq == 0:
-                    saver.save(sess, os.path.join(FLAGS.checkpoint_dir, 'gen'), global_step=global_iter)
-
-                global_iter += 1
+                if current_iter % FLAGS.train_ckpt_save_freq == 0:
+                    saver.save(sess, os.path.join(FLAGS.checkpoint_dir, 'gen'), global_step=current_iter)
 
         writer.close()
 

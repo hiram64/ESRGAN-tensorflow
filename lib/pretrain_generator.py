@@ -25,11 +25,15 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
         with tf.variable_scope('pixel-wise_loss'):
             pre_gen_loss = tf.reduce_mean(tf.reduce_mean(tf.square(pre_gen_out - HR_data), axis=3))
 
+    global_iter = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(FLAGS.pretrain_learning_rate, global_iter,
+                                               FLAGS.pretrain_lr_decay_step, 0.5, staircase=True)
     with tf.name_scope('optimizer'):
         with tf.variable_scope('generator_optimizer'):
             pre_gen_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
-            pre_gen_optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss=pre_gen_loss,
-                                                                                                   var_list=pre_gen_var)
+            pre_gen_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=pre_gen_loss,
+                                                                                             global_step=global_iter,
+                                                                                             var_list=pre_gen_var)
     # summary writer
     pre_summary = tf.summary.merge([tf.summary.scalar('pre-train : pixel-wise_loss', pre_gen_loss)])
 
@@ -48,17 +52,19 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(global_iter.initializer)
         sess.run(scale_initialization(pre_gen_var, FLAGS))
 
         writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph, filename_suffix='pre-train')
-        global_iter = 0
 
         for epoch in range(num_epoch):
             print('epoch: ', epoch, flush=True)
             HR_train, LR_train = shuffle(HR_train, LR_train, random_state=222)
 
             for iteration in range(num_batch_in_train):
-                if global_iter > FLAGS.num_iter:
+                current_iter = tf.train.global_step(sess, global_iter)
+
+                if current_iter > FLAGS.num_iter:
                     break
 
                 feed_dict = {
@@ -70,18 +76,16 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
                 result = sess.run(fetches=fetches, feed_dict=feed_dict)
 
                 # save summary every n iter
-                if global_iter % FLAGS.train_summary_save_freq == 0:
-                    writer.add_summary(result['summary'], global_step=global_iter)
+                if current_iter % FLAGS.train_summary_save_freq == 0:
+                    writer.add_summary(result['summary'], global_step=current_iter)
 
                 # save samples every n iter
-                if global_iter % FLAGS.train_sample_save_freq == 0:
-                    print('iteration : ', global_iter, ' pixel_loss', result['pre_gen_loss'])
-                    save_image(FLAGS, result['gen_HR'], 'pre-train', global_iter, save_max_num=5)
+                if current_iter % FLAGS.train_sample_save_freq == 0:
+                    print('iteration : ', current_iter, ' pixel_loss', result['pre_gen_loss'])
+                    save_image(FLAGS, result['gen_HR'], 'pre-train', current_iter, save_max_num=5)
 
                 # save checkpoint
-                if global_iter % FLAGS.train_ckpt_save_freq == 0:
-                    saver.save(sess, os.path.join(FLAGS.pre_train_checkpoint_dir, 'pre_gen'), global_step=global_iter)
-
-                global_iter += 1
+                if current_iter % FLAGS.train_ckpt_save_freq == 0:
+                    saver.save(sess, os.path.join(FLAGS.pre_train_checkpoint_dir, 'pre_gen'), global_step=current_iter)
 
         writer.close()
