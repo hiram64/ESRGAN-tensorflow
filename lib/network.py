@@ -3,6 +3,7 @@ import tensorflow as tf
 
 class Generator(object):
     """the definition of Generator"""
+
     def __init__(self, FLAGS):
         self.channel = FLAGS.channel
         self.n_filter = 64
@@ -78,6 +79,7 @@ class Generator(object):
 
 class Discriminator(object):
     """the definition of Discriminator"""
+
     def __init__(self, FLAGS):
         self.channel = FLAGS.channel
         self.n_filter = 64
@@ -119,5 +121,44 @@ class Discriminator(object):
             x = tf.layers.dense(x, 100, name='fully_connected_1')
             x = tf.nn.leaky_relu(x, alpha=0.2, name='leakyReLU_1')
             x = tf.layers.dense(x, 1, name='fully_connected_2')
+
+        return x
+
+
+class Perceptual_VGG19(object):
+    """the definition of VGG19. This network is used for constructing perceptual loss"""
+    def __int__(self):
+        pass
+
+    def build(self, x):
+        # Block 1
+        x = tf.layers.conv2d(x, 64, (3, 3), activation='relu', padding='same', name='block1_conv1')
+        x = tf.layers.conv2d(x, 64, (3, 3), activation='relu', padding='same', name='block1_conv2')
+        x = tf.layers.max_pooling2d(x, (2, 2), strides=(2, 2), name='block1_pool')
+
+        # Block 2
+        x = tf.layers.conv2d(x, 128, (3, 3), activation='relu', padding='same', name='block2_conv1')
+        x = tf.layers.conv2d(x, 128, (3, 3), activation='relu', padding='same', name='block2_conv2')
+        x = tf.layers.max_pooling2d(x, (2, 2), strides=(2, 2), name='block2_pool')
+
+        # Block 3
+        x = tf.layers.conv2d(x, 256, (3, 3), activation='relu', padding='same', name='block3_conv1')
+        x = tf.layers.conv2d(x, 256, (3, 3), activation='relu', padding='same', name='block3_conv2')
+        x = tf.layers.conv2d(x, 256, (3, 3), activation='relu', padding='same', name='block3_conv3')
+        x = tf.layers.conv2d(x, 256, (3, 3), activation='relu', padding='same', name='block3_conv4')
+        x = tf.layers.max_pooling2d(x, (2, 2), strides=(2, 2), name='block3_pool')
+
+        # Block 4
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block4_conv1')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block4_conv2')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block4_conv3')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block4_conv4')
+        x = tf.layers.max_pooling2d(x, (2, 2), strides=(2, 2), name='block4_pool')
+
+        # Block 5
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block5_conv1')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block5_conv2')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation='relu', padding='same', name='block5_conv3')
+        x = tf.layers.conv2d(x, 512, (3, 3), activation=None, padding='same', name='block5_conv4')
 
         return x

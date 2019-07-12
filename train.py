@@ -4,8 +4,8 @@ import math
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-from lib.network import Generator, Discriminator
-from lib.ops import scale_initialization
+from lib.network import Generator, Discriminator, Perceptual_VGG19
+from lib.ops import load_vgg19_weight
 from lib.pretrain_generator import train_pretrain_generator
 from lib.utils import create_dirs, normalize_images, save_image, load_npz_data, load_and_save_data
 
@@ -30,7 +30,7 @@ def set_flags():
     Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
-    Flags.DEFINE_string('perceptual_loss', 'pixel-wise', 'the part of loss function')
+    Flags.DEFINE_string('perceptual_loss', 'VGG19', 'the part of loss function. "VGG19" or "pixel-wise"')
     Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions')
 
     # About training
@@ -98,6 +98,15 @@ def main():
         with tf.variable_scope('discriminator', reuse=True):
             dis_out_fake = discriminator.build(gen_out)
 
+    if FLAGS.perceptual_loss == 'VGG19':
+        with tf.name_scope('perceptual_vgg19_HR'):
+            with tf.variable_scope('perceptual_vgg19', reuse=False):
+                vgg_out_hr = Perceptual_VGG19().build(HR_data)
+
+        with tf.name_scope('perceptual_vgg19_Gen'):
+            with tf.variable_scope('perceptual_vgg19', reuse=True):
+                vgg_out_gen = Perceptual_VGG19().build(gen_out)
+
     # define loss functions
     with tf.name_scope('loss_function'):
         with tf.variable_scope('generator_loss'):
@@ -125,6 +134,11 @@ def main():
             if FLAGS.perceptual_loss == 'pixel-wise':
                 perc_loss = tf.reduce_mean(tf.reduce_mean(tf.square(gen_out - HR_data), axis=3))
                 gen_loss += perc_loss
+            elif FLAGS.perceptual_loss == 'VGG19':
+                perc_loss = tf.reduce_mean(tf.reduce_mean(tf.square(vgg_out_gen - vgg_out_hr), axis=3))
+                gen_loss += perc_loss
+            else:
+                raise ValueError('Unknown perceptual loss type')
 
         with tf.variable_scope('discriminator_loss'):
             if FLAGS.gan_loss_type == 'RaGAN':
@@ -157,6 +171,7 @@ def main():
                 gen_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
                 gen_optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss=gen_loss,
                                                                                                    var_list=gen_var)
+
     # summary writer
     tr_summary = tf.summary.merge([
         tf.summary.scalar('generator_loss', gen_loss),
@@ -191,6 +206,9 @@ def main():
 
         pre_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
         pre_saver.restore(sess, tf.train.latest_checkpoint(FLAGS.pre_train_checkpoint_dir))
+
+        if FLAGS.perceptual_loss == 'VGG19':
+            sess.run(load_vgg19_weight(FLAGS))
 
         saver = tf.train.Saver(max_to_keep=10)
 
