@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from lib.network import Generator
+from lib.train_module import Network
 from lib.ops import extract_weight, interpolate_weight
 from lib.utils import create_dirs, de_normalize_image, load_inference_data
 
@@ -18,9 +18,9 @@ def set_flags():
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
     Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
-    Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'checkpoint directory')
+    Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'pre-train checkpoint directory')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
-    Flags.DEFINE_float('interpolation_param', 0.8, 'random seed of networks initialization')
+    Flags.DEFINE_float('interpolation_param', 0.8, 'tuning parameter for ')
 
     return Flags.FLAGS
 
@@ -40,26 +40,24 @@ def main():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
-    ### Load Pretrain model weights
+    #### Load pretrain model weights ####
     # build Generator
-    with tf.name_scope('generator'):
-        with tf.variable_scope('generator'):
-            gen_out = Generator(FLAGS).build(LR_data)
+    network = Network(FLAGS, LR_data)
+    gen_out = network.generator()
 
     with tf.Session(config=config) as sess:
         pre_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
         pre_saver.restore(sess, tf.train.latest_checkpoint(FLAGS.pre_train_checkpoint_dir))
-
         pretrain_weight = extract_weight(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
 
     tf.reset_default_graph()
 
-    ### Run network interpolation and inference
+    #### Run network interpolation and inference ####
     LR_data = tf.placeholder(tf.float32, shape=[1, None, None, FLAGS.channel], name='LR_input')
 
-    with tf.name_scope('generator'):
-        with tf.variable_scope('generator'):
-            gen_out = Generator(FLAGS).build(LR_data)
+    # build Generator
+    network = Network(FLAGS, LR_data)
+    gen_out = network.generator()
 
     with tf.Session(config=config) as sess:
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator'))
@@ -76,7 +74,7 @@ def main():
 
             result = sess.run(fetches=fetches, feed_dict=feed_dict)
 
-            cv2.imwrite(os.path.join(FLAGS.inference_result_dir, LR_filenames[i]),
+            cv2.imwrite(os.path.join(FLAGS.interpolation_result_dir, LR_filenames[i]),
                         de_normalize_image(np.squeeze(result['gen_HR'])))
 
 

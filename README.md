@@ -40,6 +40,16 @@ After training is finished, super-resolution of LR images is available. Input da
 # python inference.py --data_dir ./data/inference
 ```
 
+#### 4. Inference via Network interpolation
+The paper proposes the network interpolation method which linearly combines the weights of pixelwise-based pretrain model and ESRGAN generator. You can run this after training pretrain model and ESRGAN finishes.
+
+```
+# python network_interpolation.py
+
+(data directory can be passed by the optional argument)
+# python network_interpolation.py --data_dir ./data/inference
+```
+
 ## Test Result
 Coming soon!
 

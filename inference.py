@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from lib.network import Generator
+from lib.train_module import Network
 from lib.utils import create_dirs, de_normalize_image, load_inference_data
 
 
@@ -36,16 +36,14 @@ def main():
     LR_data = tf.placeholder(tf.float32, shape=[1, None, None, FLAGS.channel], name='LR_input')
 
     # build Generator
-    with tf.name_scope('generator'):
-        with tf.variable_scope('generator'):
-            generator = Generator(FLAGS)
-            gen_out = generator.build(LR_data)
+    network = Network(FLAGS, LR_data)
+    gen_out = network.generator()
 
     # Start Session
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
-    with tf.Session() as sess:
+    with tf.Session(config=config) as sess:
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator'))
         saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 

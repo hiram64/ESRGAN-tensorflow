@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.vgg19 import VGG19
 
@@ -20,17 +19,19 @@ def _transfer_vgg19_weight(FLAGS, weight_dict):
             W, b = layer.get_weights()
 
             fetch_weight.append(
-                tf.assign(weight_dict['perceptual_vgg19/{}/kernel'.format(layer.name)], W)
+                tf.assign(weight_dict['loss_generator/perceptual_vgg19/{}/kernel'.format(layer.name)], W)
             )
             fetch_weight.append(
-                tf.assign(weight_dict['perceptual_vgg19/{}/bias'.format(layer.name)], b)
+                tf.assign(weight_dict['loss_generator/perceptual_vgg19/{}/bias'.format(layer.name)], b)
             )
 
     return fetch_weight
 
 
 def load_vgg19_weight(FLAGS):
-    vgg_weight = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='perceptual_vgg19')
+    vgg_weight = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='loss_generator/perceptual_vgg19')
+
+    assert len(vgg_weight) > 0, 'No VGG19 weight was collected. The target scope might be wrong.'
 
     weight_dict = {}
     for weight in vgg_weight:

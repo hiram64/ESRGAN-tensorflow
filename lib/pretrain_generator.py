@@ -1,45 +1,37 @@
+import gc
 import os
 import math
 
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-from lib.network import Generator
 from lib.ops import scale_initialization
+from lib.train_module import Network, Loss, Optimizer
 from lib.utils import normalize_images, save_image
 
 
 def train_pretrain_generator(FLAGS, LR_train, HR_train):
     """pre-train deep network as initialization weights of ESRGAN Generator"""
+
     LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
                              name='LR_input')
     HR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.HR_image_size, FLAGS.HR_image_size, FLAGS.channel],
                              name='HR_input')
 
-    with tf.name_scope('generator'):
-        with tf.variable_scope('generator'):
-            pretrain_generator = Generator(FLAGS)
-            pre_gen_out = pretrain_generator.build(LR_data)
+    # build Generator
+    network = Network(FLAGS, LR_data)
+    pre_gen_out = network.generator()
 
-    with tf.name_scope('loss_function'):
-        with tf.variable_scope('pixel-wise_loss'):
-            pre_gen_loss = tf.reduce_mean(tf.reduce_mean(tf.square(pre_gen_out - HR_data), axis=3))
+    # build loss function
+    loss = Loss()
+    pre_gen_loss = loss.pretrain_loss(pre_gen_out, HR_data)
 
+    # build optimizer
     global_iter = tf.Variable(0, trainable=False)
-    learning_rate = tf.train.exponential_decay(FLAGS.pretrain_learning_rate, global_iter,
-                                               FLAGS.pretrain_lr_decay_step, 0.5, staircase=True)
-    with tf.name_scope('optimizer'):
-        with tf.variable_scope('generator_optimizer'):
-            pre_gen_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
-            pre_gen_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=pre_gen_loss,
-                                                                                             global_step=global_iter,
-                                                                                             var_list=pre_gen_var)
-    # summary writer
-    pre_summary = tf.summary.merge([tf.summary.scalar('pre-train : pixel-wise_loss', pre_gen_loss)])
+    pre_gen_var, pre_gen_optimizer = Optimizer().pretrain_optimizer(FLAGS, global_iter, pre_gen_loss)
 
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    saver = tf.train.Saver(max_to_keep=10)
+    # build summary writer
+    pre_summary = tf.summary.merge(loss.add_summary_writer())
 
     num_train_data = len(HR_train)
     num_batch_in_train = int(math.floor(num_train_data / FLAGS.batch_size))
@@ -50,6 +42,13 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
     fetches = {'pre_gen_loss': pre_gen_loss, 'pre_gen_optimizer': pre_gen_optimizer, 'gen_HR': pre_gen_out,
                'summary': pre_summary}
 
+    gc.collect()
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    saver = tf.train.Saver(max_to_keep=10)
+
+    # Start session
     with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(global_iter.initializer)

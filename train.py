@@ -1,12 +1,13 @@
+import gc
 import os
 import math
 
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-from lib.network import Generator, Discriminator, Perceptual_VGG19
 from lib.ops import load_vgg19_weight
 from lib.pretrain_generator import train_pretrain_generator
+from lib.train_module import Network, Loss, Optimizer
 from lib.utils import create_dirs, normalize_images, save_image, load_npz_data, load_and_save_data
 
 
@@ -52,8 +53,8 @@ def set_flags():
     Flags.DEFINE_integer('train_summary_save_freq', 100, 'save summary during training every n iteration')
     Flags.DEFINE_float('epsilon', 1e-12, 'used in loss function')
     Flags.DEFINE_float('gan_loss_coeff', 0.005, 'used in perceptual loss')
-    Flags.DEFINE_float('content_loss_coeff', 0.01, 'used in perceptual loss')
-    Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'checkpoint directory')
+    Flags.DEFINE_float('content_loss_coeff', 0.01, 'used in content loss')
+    Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'pre-train checkpoint directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
     Flags.DEFINE_string('logdir', './log', 'log directory')
 
@@ -79,6 +80,7 @@ def main():
     if FLAGS.pretrain_generator:
         train_pretrain_generator(FLAGS, LR_train, HR_train)
         tf.reset_default_graph()
+        gc.collect()
 
     LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
                              name='LR_input')
@@ -86,114 +88,20 @@ def main():
                              name='HR_input')
 
     # build Generator and Discriminator
-    with tf.name_scope('generator'):
-        with tf.variable_scope('generator'):
-            generator = Generator(FLAGS)
-            gen_out = generator.build(LR_data)
+    network = Network(FLAGS, LR_data, HR_data)
+    gen_out = network.generator()
+    dis_out_real, dis_out_fake = network.discriminator(gen_out)
 
-    discriminator = Discriminator(FLAGS)
-    with tf.name_scope('real_discriminator'):
-        with tf.variable_scope('discriminator', reuse=False):
-            dis_out_real = discriminator.build(HR_data)
-
-    with tf.name_scope('fake_discriminator'):
-        with tf.variable_scope('discriminator', reuse=True):
-            dis_out_fake = discriminator.build(gen_out)
-
-    if FLAGS.perceptual_loss == 'VGG19':
-        with tf.name_scope('perceptual_vgg19_HR'):
-            with tf.variable_scope('perceptual_vgg19', reuse=False):
-                vgg_out_hr = Perceptual_VGG19().build(HR_data)
-
-        with tf.name_scope('perceptual_vgg19_Gen'):
-            with tf.variable_scope('perceptual_vgg19', reuse=True):
-                vgg_out_gen = Perceptual_VGG19().build(gen_out)
-
-    # define loss functions
-    with tf.name_scope('loss_function'):
-        with tf.variable_scope('generator_loss'):
-            if FLAGS.gan_loss_type == 'RaGAN':
-                g_loss_p1 = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_real - tf.reduce_mean(dis_out_fake),
-                                                            labels=tf.zeros_like(dis_out_real)))
-
-                g_loss_p2 = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake - tf.reduce_mean(dis_out_real),
-                                                            labels=tf.ones_like(dis_out_fake)))
-
-                gen_loss = FLAGS.gan_loss_coeff * (g_loss_p1 + g_loss_p2) / 2
-            else:
-                gen_loss = FLAGS.gan_loss_coeff * tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake, labels=tf.ones_like(dis_out_fake)))
-
-            # content loss : L1 distance
-            content_loss = FLAGS.content_loss_coeff * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(gen_out - HR_data), axis=[1, 2, 3]))
-
-            gen_loss += content_loss
-
-            # perceptual loss
-            if FLAGS.perceptual_loss == 'pixel-wise':
-                perc_loss = tf.reduce_mean(tf.reduce_mean(tf.square(gen_out - HR_data), axis=3))
-                gen_loss += perc_loss
-            elif FLAGS.perceptual_loss == 'VGG19':
-                perc_loss = tf.reduce_mean(tf.reduce_mean(tf.square(vgg_out_gen - vgg_out_hr), axis=3))
-                gen_loss += perc_loss
-            else:
-                raise ValueError('Unknown perceptual loss type')
-
-        with tf.variable_scope('discriminator_loss'):
-            if FLAGS.gan_loss_type == 'RaGAN':
-                d_loss_real = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_real - tf.reduce_mean(dis_out_fake),
-                                                            labels=tf.ones_like(dis_out_real))) / 2
-
-                d_loss_fake = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake - tf.reduce_mean(dis_out_real),
-                                                            labels=tf.zeros_like(dis_out_fake))) / 2
-
-                dis_loss = d_loss_real + d_loss_fake
-            else:
-                d_loss_real = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_real, labels=tf.ones_like(dis_out_real)))
-                d_loss_fake = tf.reduce_mean(
-                    tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake, labels=tf.zeros_like(dis_out_fake)))
-
-                dis_loss = d_loss_real + d_loss_fake
+    # build loss function
+    loss = Loss()
+    gen_loss, dis_loss = loss.gan_loss(FLAGS, HR_data, gen_out, dis_out_real, dis_out_fake)
 
     # define optimizers
     global_iter = tf.Variable(0, trainable=False)
-    boundaries = [50000, 100000, 200000, 300000]
-    values = [FLAGS.learning_rate, FLAGS.learning_rate * 0.5, FLAGS.learning_rate * 0.5 ** 2,
-              FLAGS.learning_rate * 0.5 ** 3, FLAGS.learning_rate * 0.5 ** 4]
-    learning_rate = tf.train.piecewise_constant(global_iter, boundaries, values)
+    dis_var, dis_optimizer, gen_var, gen_optimizer = Optimizer().gan_optimizer(FLAGS, global_iter, dis_loss, gen_loss)
 
-    with tf.name_scope('optimizer'):
-        with tf.variable_scope('discriminator_optimizer'):
-            dis_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')
-            dis_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=dis_loss,
-                                                                                         var_list=dis_var)
-
-        with tf.variable_scope('generator_optimizer'):
-            with tf.control_dependencies([dis_optimizer]):
-                gen_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
-                gen_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss=gen_loss,
-                                                                                             global_step=global_iter,
-                                                                                             var_list=gen_var)
-
-    # summary writer
-    tr_summary = tf.summary.merge([
-        tf.summary.scalar('generator_loss', gen_loss),
-        tf.summary.scalar('content_loss', content_loss),
-        tf.summary.scalar('perceptual_loss', perc_loss),
-        tf.summary.scalar('discriminator_loss', dis_loss),
-        tf.summary.scalar('discriminator_fake_loss', d_loss_fake),
-        tf.summary.scalar('discriminator_real_loss', d_loss_real)
-    ])
-
-    # Start Session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
+    # build summary writer
+    tr_summary = tf.summary.merge(loss.add_summary_writer())
 
     num_train_data = len(HR_train)
     num_batch_in_train = int(math.floor(num_train_data / FLAGS.batch_size))
@@ -206,6 +114,12 @@ def main():
                'gen_HR': gen_out,
                'summary': tr_summary
                }
+
+    gc.collect()
+
+    # Start Session
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
