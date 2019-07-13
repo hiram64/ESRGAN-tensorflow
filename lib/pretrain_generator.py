@@ -50,7 +50,7 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
     fetches = {'pre_gen_loss': pre_gen_loss, 'pre_gen_optimizer': pre_gen_optimizer, 'gen_HR': pre_gen_out,
                'summary': pre_summary}
 
-    with tf.Session() as sess:
+    with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(global_iter.initializer)
         sess.run(scale_initialization(pre_gen_var, FLAGS))

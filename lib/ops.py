@@ -1,3 +1,6 @@
+from collections import OrderedDict
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.vgg19 import VGG19
 
@@ -34,3 +37,23 @@ def load_vgg19_weight(FLAGS):
         weight_dict[weight.name.rsplit(':', 1)[0]] = weight
 
     return _transfer_vgg19_weight(FLAGS, weight_dict)
+
+
+def extract_weight(network_vars):
+    weight_dict = OrderedDict()
+
+    for weight in network_vars:
+        weight_dict[weight.name] = weight.eval()
+
+    return weight_dict
+
+
+def interpolate_weight(FLAGS, pretrain_weight):
+    fetch_weight = []
+    alpha = FLAGS.interpolation_param
+
+    for name, pre_weight in pretrain_weight.items():
+        esrgan_weight = tf.get_default_graph().get_tensor_by_name(name)
+        fetch_weight.append(tf.assign(esrgan_weight, (1 - alpha) * pre_weight + alpha * esrgan_weight))
+
+    return fetch_weight

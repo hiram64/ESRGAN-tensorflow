@@ -34,10 +34,10 @@ def set_flags():
     Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions')
 
     # About training
-    Flags.DEFINE_boolean('pretrain_generator', True, 'Whether to pretrain generator')
     Flags.DEFINE_integer('num_iter', 20000, 'The number of iterations')
     Flags.DEFINE_integer('batch_size', 32, 'Mini-batch size')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
+    Flags.DEFINE_boolean('pretrain_generator', True, 'Whether to pretrain generator')
     Flags.DEFINE_float('pretrain_learning_rate', 2e-4, 'learning rate for pretrain')
     Flags.DEFINE_float('pretrain_lr_decay_step', 20000, 'decay by every n iteration')
     Flags.DEFINE_float('learning_rate', 1e-4, 'learning rate')
@@ -207,7 +207,7 @@ def main():
                'summary': tr_summary
                }
 
-    with tf.Session() as sess:
+    with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(global_iter.initializer)
 
