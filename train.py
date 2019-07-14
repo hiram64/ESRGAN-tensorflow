@@ -1,14 +1,16 @@
+from datetime import datetime
 import gc
-import os
+import logging
 import math
+import os
 
-from sklearn.utils import shuffle
 import tensorflow as tf
+from sklearn.utils import shuffle
 
 from lib.ops import load_vgg19_weight
 from lib.pretrain_generator import train_pretrain_generator
 from lib.train_module import Network, Loss, Optimizer
-from lib.utils import create_dirs, normalize_images, save_image, load_npz_data, load_and_save_data
+from lib.utils import create_dirs, log, normalize_images, save_image, load_npz_data, load_and_save_data
 
 
 def set_flags():
@@ -48,17 +50,33 @@ def set_flags():
     Flags.DEFINE_integer('LR_image_size', 32,
                          'Image width and height of LR image. This size should be 1/4 of HR_image_size exactly. '
                          'This flag is valid when crop flag is set to false.')
-    Flags.DEFINE_integer('train_sample_save_freq', 1000, 'save samples during training every n iteration')
-    Flags.DEFINE_integer('train_ckpt_save_freq', 2000, 'save checkpoint during training every n iteration')
-    Flags.DEFINE_integer('train_summary_save_freq', 100, 'save summary during training every n iteration')
     Flags.DEFINE_float('epsilon', 1e-12, 'used in loss function')
     Flags.DEFINE_float('gan_loss_coeff', 0.005, 'used in perceptual loss')
     Flags.DEFINE_float('content_loss_coeff', 0.01, 'used in content loss')
+
+    # About log
+    Flags.DEFINE_boolean('logging', True, 'whether to record training log')
+    Flags.DEFINE_integer('train_sample_save_freq', 1000, 'save samples during training every n iteration')
+    Flags.DEFINE_integer('train_ckpt_save_freq', 2000, 'save checkpoint during training every n iteration')
+    Flags.DEFINE_integer('train_summary_save_freq', 100, 'save summary during training every n iteration')
     Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'pre-train checkpoint directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
     Flags.DEFINE_string('logdir', './log', 'log directory')
 
     return Flags.FLAGS
+
+
+def set_logger(FLAGS):
+    """set logger for training recording"""
+    if FLAGS.logging:
+        logfile = '{0}/training_logfile_{1}.log'.format(FLAGS.logdir, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        formatter = '%(levelname)s:%(asctime)s:%(message)s'
+        logging.basicConfig(level=logging.INFO, filename=logfile, format=formatter, datefmt='%Y-%m-%d %I:%M:%S')
+
+        return True
+    else:
+        print('No logging is set')
+        return False
 
 
 def main():
@@ -70,17 +88,25 @@ def main():
                    FLAGS.pre_train_checkpoint_dir, FLAGS.checkpoint_dir, FLAGS.logdir]
     create_dirs(target_dirs)
 
+    # set logger
+    logflag = set_logger(FLAGS)
+    log(logflag, 'Training script start', 'info')
+
     # load data
     if FLAGS.save_data:
         HR_train, LR_train = load_and_save_data(FLAGS)
+        log(logflag, 'Data loading and data processing are completed', 'info')
     else:
         HR_train, LR_train = load_npz_data(FLAGS)
+        log(logflag, 'Loading existing data is completed', 'info')
 
     # pre-train generator with pixel-wise loss and save the trained model
     if FLAGS.pretrain_generator:
-        train_pretrain_generator(FLAGS, LR_train, HR_train)
+        train_pretrain_generator(FLAGS, LR_train, HR_train, logflag)
         tf.reset_default_graph()
         gc.collect()
+    else:
+        log(logflag, 'Pre-train : Pre-train skips and an existing trained model will be used', 'info')
 
     LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
                              name='LR_input')
@@ -122,6 +148,8 @@ def main():
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
+        log(logflag, 'Training ESRGAN starts', 'info')
+
         sess.run(tf.global_variables_initializer())
         sess.run(global_iter.initializer)
 
@@ -136,7 +164,7 @@ def main():
         saver = tf.train.Saver(max_to_keep=10)
 
         for epoch in range(num_epoch):
-            print('epoch: ', epoch, flush=True)
+            log(logflag, 'ESRGAN Epoch: {0}'.format(epoch), 'info')
             HR_train, LR_train = shuffle(HR_train, LR_train, random_state=222)
 
             for iteration in range(num_batch_in_train):
@@ -158,8 +186,11 @@ def main():
 
                 # save samples every n iter
                 if current_iter % FLAGS.train_sample_save_freq == 0:
-                    print('iteration : ', current_iter, ' gen_loss', result['gen_loss'])
-                    print('iteration : ', current_iter, ' dis_loss', result['dis_loss'])
+                    log(logflag,
+                        'ESRGAN iteration : {0}, gen_loss : {1}, dis_loss : {2}'.format(current_iter,
+                                                                                        result['gen_loss'],
+                                                                                        result['dis_loss']),
+                        'info')
 
                     save_image(FLAGS, result['gen_HR'], 'train', current_iter, save_max_num=5)
 
@@ -167,6 +198,8 @@ def main():
                     saver.save(sess, os.path.join(FLAGS.checkpoint_dir, 'gen'), global_step=current_iter)
 
         writer.close()
+        log(logflag, 'ESRGAN : Process end', 'info')
+        log(logflag, 'Training script end', 'info')
 
 
 if __name__ == '__main__':

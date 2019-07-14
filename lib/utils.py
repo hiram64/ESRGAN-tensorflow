@@ -1,8 +1,25 @@
+from datetime import datetime
+import logging
 import os
 import glob
 
 import cv2
 import numpy as np
+
+
+def log(logflag, message, level='info'):
+    """logging to stdout and logfile if flag is true"""
+    print(message, flush=True)
+
+    if logflag:
+        if level == 'info':
+            logging.info(message)
+        elif level == 'warning':
+            logging.warning(message)
+        elif level == 'error':
+            logging.error(message)
+        elif level == 'critical':
+            logging.critical(message)
 
 
 def create_dirs(target_dirs):

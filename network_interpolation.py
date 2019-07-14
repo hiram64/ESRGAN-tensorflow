@@ -60,6 +60,7 @@ def main():
     gen_out = network.generator()
 
     with tf.Session(config=config) as sess:
+        print('Inference start')
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator'))
         saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 
@@ -76,6 +77,8 @@ def main():
 
             cv2.imwrite(os.path.join(FLAGS.interpolation_result_dir, LR_filenames[i]),
                         de_normalize_image(np.squeeze(result['gen_HR'])))
+
+    print('Inference end')
 
 
 if __name__ == '__main__':

@@ -7,11 +7,12 @@ import tensorflow as tf
 
 from lib.ops import scale_initialization
 from lib.train_module import Network, Loss, Optimizer
-from lib.utils import normalize_images, save_image
+from lib.utils import log, normalize_images, save_image
 
 
-def train_pretrain_generator(FLAGS, LR_train, HR_train):
+def train_pretrain_generator(FLAGS, LR_train, HR_train, logflag):
     """pre-train deep network as initialization weights of ESRGAN Generator"""
+    log(logflag, 'Pre-train : Process start', 'info')
 
     LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
                              name='LR_input')
@@ -50,6 +51,8 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
 
     # Start session
     with tf.Session(config=config) as sess:
+        log(logflag, 'Pre-train : Training starts', 'info')
+
         sess.run(tf.global_variables_initializer())
         sess.run(global_iter.initializer)
         sess.run(scale_initialization(pre_gen_var, FLAGS))
@@ -57,7 +60,8 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
         writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph, filename_suffix='pre-train')
 
         for epoch in range(num_epoch):
-            print('epoch: ', epoch, flush=True)
+            log(logflag, 'Pre-train Epoch: {0}'.format(epoch), 'info')
+
             HR_train, LR_train = shuffle(HR_train, LR_train, random_state=222)
 
             for iteration in range(num_batch_in_train):
@@ -80,7 +84,9 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
 
                 # save samples every n iter
                 if current_iter % FLAGS.train_sample_save_freq == 0:
-                    print('iteration : ', current_iter, ' pixel_loss', result['pre_gen_loss'])
+                    log(logflag,
+                        'Pre-train iteration : {0}, pixel-wise_loss : {1}'.format(current_iter, result['pre_gen_loss']),
+                        'info')
                     save_image(FLAGS, result['gen_HR'], 'pre-train', current_iter, save_max_num=5)
 
                 # save checkpoint
@@ -88,3 +94,4 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train):
                     saver.save(sess, os.path.join(FLAGS.pre_train_checkpoint_dir, 'pre_gen'), global_step=current_iter)
 
         writer.close()
+        log(logflag, 'Pre-train : Process end', 'info')
