@@ -1,4 +1,3 @@
-from datetime import datetime
 import logging
 import os
 import glob
@@ -66,9 +65,12 @@ def crop(img, FLAGS):
     return img[rand_h:rand_h + FLAGS.crop_size, rand_w:rand_w + FLAGS.crop_size, :]
 
 
-def load_and_save_data(FLAGS):
+def load_and_save_data(FLAGS, logflag):
     """make HR and LR data. And save them as npz files"""
+    assert os.path.isdir(FLAGS.data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
+
     all_file_path = glob.glob(FLAGS.data_dir + '/*')
+    assert len(all_file_path) > 0, 'No file in the directory'
 
     ret_HR_image = []
     ret_LR_image = []
@@ -98,6 +100,9 @@ def load_and_save_data(FLAGS):
         ret_HR_image.append(HR_image)
         ret_LR_image.append(LR_image)
 
+    assert len(ret_HR_image) > 0 and len(ret_LR_image) > 0, 'No availale image is found in the directory'
+    log(logflag, 'Data process : {} images are processed'.format(len(ret_HR_image)), 'info')
+
     ret_HR_image = np.array(ret_HR_image)
     ret_LR_image = np.array(ret_LR_image)
 
@@ -115,7 +120,10 @@ def load_npz_data(FLAGS):
 
 def load_inference_data(FLAGS):
     """load data from directory for inference"""
+    assert os.path.isdir(FLAGS.data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
+
     all_file_path = glob.glob(FLAGS.data_dir + '/*')
+    assert len(all_file_path) > 0, 'No file in the directory'
 
     ret_LR_image = []
     ret_filename = []
@@ -126,5 +134,7 @@ def load_inference_data(FLAGS):
         ret_LR_image.append(img[0][np.newaxis, ...])
 
         ret_filename.append(file.rsplit('/', 1)[-1])
+
+    assert len(ret_LR_image) > 0, 'No available image is found in the directory'
 
     return ret_LR_image, ret_filename

@@ -94,11 +94,13 @@ def main():
 
     # load data
     if FLAGS.save_data:
-        HR_train, LR_train = load_and_save_data(FLAGS)
-        log(logflag, 'Data loading and data processing are completed', 'info')
+        HR_train, LR_train = load_and_save_data(FLAGS, logflag)
+        log(logflag, 'Data process : Data loading and data processing are completed', 'info')
     else:
         HR_train, LR_train = load_npz_data(FLAGS)
-        log(logflag, 'Loading existing data is completed', 'info')
+        log(logflag,
+            'Data process : Loading existing data is completed. {} images are loaded'.format(len(HR_train)),
+            'info')
 
     # pre-train generator with pixel-wise loss and save the trained model
     if FLAGS.pretrain_generator:

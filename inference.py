@@ -13,6 +13,8 @@ def set_flags():
 
     Flags.DEFINE_string('data_dir', './data/inference', 'inference data directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
+    Flags.DEFINE_string('inference_checkpoint', '',
+                        'checkpoint to use for inference. Empty string means the latest checkpoint is used')
     Flags.DEFINE_string('inference_result_dir', './inference_result', 'output directory during inference')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
     Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
@@ -47,7 +49,12 @@ def main():
         print('Inference start')
 
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator'))
-        saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
+
+        if FLAGS.inference_checkpoint:
+            saver.restore(sess, os.path.join(FLAGS.checkpoint_dir, FLAGS.inference_checkpoint))
+        else:
+            print('No checkpoint is specified. The latest one is used for inference')
+            saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 
         for i, test_img in enumerate(LR_inference):
             fetches = {'gen_HR': gen_out}

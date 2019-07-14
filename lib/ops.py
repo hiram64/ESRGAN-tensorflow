@@ -55,6 +55,9 @@ def interpolate_weight(FLAGS, pretrain_weight):
 
     for name, pre_weight in pretrain_weight.items():
         esrgan_weight = tf.get_default_graph().get_tensor_by_name(name)
+
+        assert pre_weight.shape == esrgan_weight.shape, 'The shape of weights does not match'
+
         fetch_weight.append(tf.assign(esrgan_weight, (1 - alpha) * pre_weight + alpha * esrgan_weight))
 
     return fetch_weight
