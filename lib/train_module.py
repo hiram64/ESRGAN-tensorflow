@@ -6,6 +6,7 @@ from lib.network import Generator, Discriminator, Perceptual_VGG19
 
 
 class Network(object):
+    """class to build networks"""
     def __init__(self, FLAGS, LR_data=None, HR_data=None):
         self.FLAGS = FLAGS
         self.LR_data = LR_data
@@ -33,6 +34,7 @@ class Network(object):
 
 
 class Loss(object):
+    """class to build loss functions"""
     def __init__(self):
         self.summary_target = OrderedDict()
 
@@ -124,10 +126,9 @@ class Loss(object):
 
 
 class Optimizer(object):
-    def __init__(self):
-        pass
-
-    def pretrain_optimizer(self, FLAGS, global_iter, pre_gen_loss):
+    """class to build optimizers"""
+    @staticmethod
+    def pretrain_optimizer(FLAGS, global_iter, pre_gen_loss):
         learning_rate = tf.train.exponential_decay(FLAGS.pretrain_learning_rate, global_iter,
                                                    FLAGS.pretrain_lr_decay_step, 0.5, staircase=True)
 
@@ -140,7 +141,8 @@ class Optimizer(object):
 
         return pre_gen_var, pre_gen_optimizer
 
-    def gan_optimizer(self, FLAGS, global_iter, dis_loss, gen_loss):
+    @staticmethod
+    def gan_optimizer(FLAGS, global_iter, dis_loss, gen_loss):
         boundaries = [50000, 100000, 200000, 300000]
         values = [FLAGS.learning_rate, FLAGS.learning_rate * 0.5, FLAGS.learning_rate * 0.5 ** 2,
                   FLAGS.learning_rate * 0.5 ** 3, FLAGS.learning_rate * 0.5 ** 4]
