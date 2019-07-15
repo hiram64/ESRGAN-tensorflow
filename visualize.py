@@ -69,7 +69,6 @@ def visualize(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--LR_data_dir', default='./data/div2_inf_LR', type=str)
     parser.add_argument('--HR_data_dir', default='./data/div2_inf_HR', type=str)
     parser.add_argument('--inference_result', default='./inference_result_div2', type=str)
     parser.add_argument('--network_interpolation_result', default='./interpolation_result_div2', type=str)

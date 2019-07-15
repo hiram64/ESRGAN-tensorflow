@@ -52,7 +52,7 @@ The paper proposes the network interpolation method which linearly combines the 
 
 ## Experiment Result
 #### DIV2K dataset
-DIV2K is a collection of 2K resolution high quality images.
+DIV2K is a collection of 2K resolution high quality images. <br>
 https://data.vision.ee.ethz.ch/cvl/DIV2K/
 
 <img src="img/0833.png">

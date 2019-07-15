@@ -21,7 +21,7 @@ def set_flags():
                         'checkpoint to use for network interpolation. Empty string means the latest checkpoint is used')
     Flags.DEFINE_string('interpolation_result_dir', './interpolation_result', 'output directory during inference')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
-    Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
+    Flags.DEFINE_integer('num_repeat_RRDB', 15, 'The number of repeats of RRDB blocks')
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
     Flags.DEFINE_float('interpolation_param', 0.8, 'tuning parameter for ')
@@ -69,6 +69,8 @@ def main():
     network = Network(FLAGS, LR_data)
     gen_out = network.generator()
 
+    fetches = {'gen_HR': gen_out}
+
     with tf.Session(config=config) as sess:
         print('Inference start')
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator'))
@@ -84,7 +86,6 @@ def main():
         sess.run(interpolate_weight(FLAGS, pretrain_weight))
 
         for i, test_img in enumerate(LR_inference):
-            fetches = {'gen_HR': gen_out}
 
             feed_dict = {
                 LR_data: test_img

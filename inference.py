@@ -17,7 +17,7 @@ def set_flags():
                         'checkpoint to use for inference. Empty string means the latest checkpoint is used')
     Flags.DEFINE_string('inference_result_dir', './inference_result', 'output directory during inference')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
-    Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
+    Flags.DEFINE_integer('num_repeat_RRDB', 15, 'The number of repeats of RRDB blocks')
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
 
@@ -41,6 +41,8 @@ def main():
     network = Network(FLAGS, LR_data)
     gen_out = network.generator()
 
+    fetches = {'gen_HR': gen_out}
+
     # Start Session
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -57,7 +59,6 @@ def main():
             saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 
         for i, test_img in enumerate(LR_inference):
-            fetches = {'gen_HR': gen_out}
 
             feed_dict = {
                 LR_data: test_img
