@@ -8,7 +8,7 @@ tensorflow, openCV, sklearn, numpy
 The versions of my test environment :  
 Python==3.6.8, tensorflow-gpu==1.12.0, openCV==4.1.0,  scikit-learn==0.20.3, numpy==1.16.2
 
-## How to use
+## How to Use
 
 #### 1. Prepare data for training
 
@@ -50,8 +50,21 @@ The paper proposes the network interpolation method which linearly combines the 
 # python network_interpolation.py --data_dir ./data/inference
 ```
 
-## Test Result
-Coming soon!
+## Experiment Result
+#### DIV2K dataset
+DIV2K is a collection of 2K resolution high quality images.
+https://data.vision.ee.ethz.ch/cvl/DIV2K/
+
+<img src="img/0833.png">
+<img src="img/0887.png">
+<img src="img/0896.png">
+from left to right: bicubic interpolation, ESRGAN, ESRGAN with network_interpolation, High resolution(GT). 4x super resolution.
+
+#### Experiment condition
+- training with 800 images and cropped 2 patches per image
+- apply data augmentation(horizontal flip and rotate by 90 degree)
+- 15 RRDBs, 32 batchsize, 50,000 iteration per training phase. Other parameters are as the papers
+- Network interpolation parameter is 0.2
 
 
 ## Limitations
@@ -68,7 +81,7 @@ The following features have not been implemented apart from the paper.
 - [x] Learning rate scheduling
 - [x] Network interpolation
 - [x] Data augmentation
-- [ ] Evaluation metrics
+- [x] Evaluation metrics
 
 ### Notes
 Some setting parameters like the number of RRDB blocks, mini-batch size, the number of iteration are changed corresponding to my test environment.
