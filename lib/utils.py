@@ -65,6 +65,15 @@ def crop(img, FLAGS):
     return img[rand_h:rand_h + FLAGS.crop_size, rand_w:rand_w + FLAGS.crop_size, :]
 
 
+def data_augmentation(LR_images, HR_images, aug_type='horizontal_flip'):
+    """data augmentation. input arrays should be [N, H, W, C]"""
+
+    if aug_type == 'horizontal_flip':
+        return LR_images[:, :, ::-1, :], HR_images[:, :, ::-1, :]
+    elif aug_type == 'rotation_90':
+        return np.rot90(LR_images, k=1, axes=(1, 2)), np.rot90(HR_images, k=1, axes=(1, 2))
+
+
 def load_and_save_data(FLAGS, logflag):
     """make HR and LR data. And save them as npz files"""
     assert os.path.isdir(FLAGS.data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
@@ -81,30 +90,48 @@ def load_and_save_data(FLAGS, logflag):
 
         # crop patches if flag is true. Otherwise just resize HR and LR images
         if FLAGS.crop:
-            img_h, img_w, _ = img.shape
+            for _ in range(FLAGS.num_crop_per_image):
+                img_h, img_w, _ = img.shape
 
-            if (img_h < FLAGS.crop_size) or (img_w < FLAGS.crop_size):
-                print('Skip crop target image because of insufficient size')
-                continue
+                if (img_h < FLAGS.crop_size) or (img_w < FLAGS.crop_size):
+                    print('Skip crop target image because of insufficient size')
+                    continue
 
-            HR_image = crop(img, FLAGS)
-            LR_crop_size = np.int(np.floor(FLAGS.crop_size / FLAGS.scale_SR))
-            LR_image = cv2.resize(HR_image, (LR_crop_size, LR_crop_size), interpolation=cv2.INTER_LANCZOS4)
+                HR_image = crop(img, FLAGS)
+                LR_crop_size = np.int(np.floor(FLAGS.crop_size / FLAGS.scale_SR))
+                LR_image = cv2.resize(HR_image, (LR_crop_size, LR_crop_size), interpolation=cv2.INTER_LANCZOS4)
+
+                cv2.imwrite(FLAGS.HR_data_dir + '/' + filename, HR_image)
+                cv2.imwrite(FLAGS.LR_data_dir + '/' + filename, LR_image)
+
+                ret_HR_image.append(HR_image)
+                ret_LR_image.append(LR_image)
         else:
             HR_image = cv2.resize(img, (FLAGS.HR_image_size, FLAGS.HR_image_size), interpolation=cv2.INTER_LANCZOS4)
             LR_image = cv2.resize(img, (FLAGS.LR_image_size, FLAGS.LR_image_size), interpolation=cv2.INTER_LANCZOS4)
 
-        cv2.imwrite(FLAGS.HR_data_dir + '/' + filename, HR_image)
-        cv2.imwrite(FLAGS.LR_data_dir + '/' + filename, LR_image)
+            cv2.imwrite(FLAGS.HR_data_dir + '/' + filename, HR_image)
+            cv2.imwrite(FLAGS.LR_data_dir + '/' + filename, LR_image)
 
-        ret_HR_image.append(HR_image)
-        ret_LR_image.append(LR_image)
+            ret_HR_image.append(HR_image)
+            ret_LR_image.append(LR_image)
 
     assert len(ret_HR_image) > 0 and len(ret_LR_image) > 0, 'No availale image is found in the directory'
     log(logflag, 'Data process : {} images are processed'.format(len(ret_HR_image)), 'info')
 
     ret_HR_image = np.array(ret_HR_image)
     ret_LR_image = np.array(ret_LR_image)
+
+    if FLAGS.data_augmentation:
+        LR_flip, HR_flip = data_augmentation(ret_LR_image, ret_HR_image, aug_type='horizontal_flip')
+        LR_rot, HR_rot = data_augmentation(ret_LR_image, ret_HR_image, aug_type='rotation_90')
+
+        ret_LR_image = np.append(ret_LR_image, LR_flip, axis=0)
+        ret_HR_image = np.append(ret_HR_image, HR_flip, axis=0)
+        ret_LR_image = np.append(ret_LR_image, LR_rot, axis=0)
+        ret_HR_image = np.append(ret_HR_image, HR_rot, axis=0)
+
+        del LR_flip, HR_flip, LR_rot, HR_rot
 
     np.savez(FLAGS.npz_data_dir + '/' + FLAGS.HR_npz_filename, images=ret_HR_image)
     np.savez(FLAGS.npz_data_dir + '/' + FLAGS.LR_npz_filename, images=ret_LR_image)

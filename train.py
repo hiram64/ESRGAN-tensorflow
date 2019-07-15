@@ -17,7 +17,7 @@ def set_flags():
     Flags = tf.app.flags
 
     # About data
-    Flags.DEFINE_string('data_dir', './data/LSUN', 'data directory')
+    Flags.DEFINE_string('data_dir', './data/DIV2K_train_HR', 'data directory')
     Flags.DEFINE_string('HR_data_dir', './data/HR_data', 'HR data directory')
     Flags.DEFINE_string('LR_data_dir', './data/LR_data', 'LR data directory')
     Flags.DEFINE_string('npz_data_dir', './data/npz', 'The npz data dir')
@@ -27,17 +27,19 @@ def set_flags():
     Flags.DEFINE_string('train_result_dir', './train_result', 'output directory during training')
     Flags.DEFINE_boolean('crop', True, 'Whether image cropping is enabled')
     Flags.DEFINE_integer('crop_size', 128, 'the size of crop of training HR images')
+    Flags.DEFINE_integer('num_crop_per_image', 2, 'the number of random-cropped images per image')
+    Flags.DEFINE_boolean('data_augmentation', True, 'whether to augment data')
 
     # About Network
     Flags.DEFINE_integer('scale_SR', 4, 'the scale of super-resolution')
-    Flags.DEFINE_integer('num_repeat_RRDB', 10, 'The number of repeats of RRDB blocks')
+    Flags.DEFINE_integer('num_repeat_RRDB', 15, 'The number of repeats of RRDB blocks')
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
     Flags.DEFINE_string('perceptual_loss', 'VGG19', 'the part of loss function. "VGG19" or "pixel-wise"')
     Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions')
 
     # About training
-    Flags.DEFINE_integer('num_iter', 20000, 'The number of iterations')
+    Flags.DEFINE_integer('num_iter', 50000, 'The number of iterations')
     Flags.DEFINE_integer('batch_size', 32, 'Mini-batch size')
     Flags.DEFINE_integer('channel', 3, 'Number of input/output image channel')
     Flags.DEFINE_boolean('pretrain_generator', True, 'Whether to pretrain generator')
@@ -56,9 +58,9 @@ def set_flags():
 
     # About log
     Flags.DEFINE_boolean('logging', True, 'whether to record training log')
-    Flags.DEFINE_integer('train_sample_save_freq', 1000, 'save samples during training every n iteration')
+    Flags.DEFINE_integer('train_sample_save_freq', 2000, 'save samples during training every n iteration')
     Flags.DEFINE_integer('train_ckpt_save_freq', 2000, 'save checkpoint during training every n iteration')
-    Flags.DEFINE_integer('train_summary_save_freq', 100, 'save summary during training every n iteration')
+    Flags.DEFINE_integer('train_summary_save_freq', 200, 'save summary during training every n iteration')
     Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'pre-train checkpoint directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
     Flags.DEFINE_string('logdir', './log', 'log directory')
