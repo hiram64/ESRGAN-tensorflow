@@ -29,13 +29,13 @@ def create_dirs(target_dirs):
 
 
 def normalize_images(*arrays):
-    """normalize input image arrays by divining 255"""
-    return [arr / 255 for arr in arrays]
+    """normalize input image arrays"""
+    return [arr / 127.5 - 1 for arr in arrays]
 
 
 def de_normalize_image(image):
-    """de-normalize input image array by multiplying 255"""
-    return image * 255
+    """de-normalize input image array"""
+    return (image + 1) * 127.5
 
 
 def save_image(FLAGS, images, phase, global_iter, save_max_num=5):

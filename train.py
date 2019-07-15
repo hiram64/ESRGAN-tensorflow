@@ -200,7 +200,7 @@ def main():
                     saver.save(sess, os.path.join(FLAGS.checkpoint_dir, 'gen'), global_step=current_iter)
 
         writer.close()
-        log(logflag, 'ESRGAN : Process end', 'info')
+        log(logflag, 'Training ESRGAN end', 'info')
         log(logflag, 'Training script end', 'info')
 
 
