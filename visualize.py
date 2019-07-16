@@ -8,6 +8,10 @@ import numpy as np
 
 
 def visualize(args):
+    """visualize images. Bicubic interpolation(generated in this script), ESRGAN, ESRGAN with network interpolation
+    and HR are tiled into an image.
+    The images of ESRGAN, ESRGAN with network interpolation have the same filename as HR.
+    """
     HR_files = glob.glob(args.HR_data_dir + '/*')
 
     for file in HR_files:
@@ -30,7 +34,7 @@ def visualize(args):
         elif os.path.isfile(inf_path_png):
             inf_path = inf_path_png
         else:
-            raise FileNotFoundError('')
+            raise FileNotFoundError('Images should have the same filename as HR image and be the formats of jpg or png')
 
         inf_img = cv2.imread(inf_path)
 
@@ -42,7 +46,7 @@ def visualize(args):
         elif os.path.isfile(inf_path_png):
             ni_path = ni_path_png
         else:
-            raise FileNotFoundError('')
+            raise FileNotFoundError('Images should have the same filename as HR image and be the formats of jpg or png')
 
         ni_img = cv2.imread(ni_path)
 

@@ -58,12 +58,21 @@ https://data.vision.ee.ethz.ch/cvl/DIV2K/
 <img src="img/0833.png">
 <img src="img/0887.png">
 <img src="img/0896.png">
-from left to right: bicubic interpolation, ESRGAN, ESRGAN with network_interpolation, High resolution(GT). 4x super resolution.
+from left to right: bicubic interpolation, ESRGAN, ESRGAN with network interpolation, High resolution(GT). 4x super resolution.
+
+#### LSUN
+LSUN is a collection of ordinal resolution bedroom images. <br>
+https://www.kaggle.com/jhoward/lsun_bedroom/data
+
+<img src="img/111b822af95747f45f5d25a84f8094c10b27c765.png">
+<img src="img/11183b7a2e0ee4be9990721d9ddc7fa34997b41f.png">
+<img src="img/1117e6b64a7b4336df58eb351cff435529485e91.png">
 
 #### Experiment condition
-- training with 800 images and cropped 2 patches per image
+- training with 800 images and cropped 2 patches per image for DIV2K
+- training with about 5000 images from 20% collection dataset and cropped 2 patches per image for LSUN
 - apply data augmentation(horizontal flip and rotate by 90 degree)
-- 15 RRDBs, 32 batchsize, 50,000 iteration per training phase. Other parameters are as the papers
+- 15 RRDBs, 32 batchsize, 50,000 iteration per training phase. Other parameters are the same as the paper.
 - Network interpolation parameter is 0.2
 
 
