@@ -67,6 +67,7 @@ https://www.kaggle.com/jhoward/lsun_bedroom/data
 <img src="img/111b822af95747f45f5d25a84f8094c10b27c765.png">
 <img src="img/11183b7a2e0ee4be9990721d9ddc7fa34997b41f.png">
 <img src="img/1117e6b64a7b4336df58eb351cff435529485e91.png">
+from left to right: bicubic interpolation, ESRGAN, ESRGAN with network interpolation, High resolution(GT). 4x super resolution.
 
 #### Experiment condition
 - training with 800 images and cropped 2 patches per image for DIV2K
