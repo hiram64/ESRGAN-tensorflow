@@ -17,7 +17,7 @@ created automatically as set in the script.
 
 #### 2. Prepare data for training
 Run train.py script. The main processes are :
-- Data processing : create patches of HR and LR(by downsampling HR pathces). These processed data can be saved in directories so that they can be recycled.
+- Data processing : create patches of HR and LR(by downsampling HR patches). These processed data can be saved in directories so that they can be recycled to use.
 
 - Pre-train with pixel-wise loss : As described in the paper, pre-training of Generator is done. You can set "pretrain_generator" flag to False to use an existing pre-trained checkpoint model. (training ESRGAN without pre-trained model is not supported.)
 
@@ -41,7 +41,7 @@ After training is finished, super-resolution of LR images is available. Input da
 ```
 
 #### 4. Inference via Network interpolation
-The paper proposes the network interpolation method which linearly combines the weights of pixelwise-based pretrain model and ESRGAN generator. You can run this after training pretrain model and ESRGAN finishes.
+The paper proposes the network interpolation method which linearly combines the weights of pixelwise-based pretrain model and ESRGAN generator. You can run this after training both pre-train model and ESRGAN finishes. Input data can be specified "data_dir" of network_interpolation.py script.
 
 ```
 # python network_interpolation.py
@@ -61,7 +61,7 @@ https://data.vision.ee.ethz.ch/cvl/DIV2K/
 from left to right: bicubic interpolation, ESRGAN, ESRGAN with network interpolation, High resolution(GT). 4x super resolution.
 
 #### LSUN
-LSUN is a collection of ordinal resolution bedroom images. <br>
+LSUN is a collection of ordinaly resolution bedroom images. <br>
 https://www.kaggle.com/jhoward/lsun_bedroom/data
 
 <img src="img/111b822af95747f45f5d25a84f8094c10b27c765.png">
