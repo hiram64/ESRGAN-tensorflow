@@ -128,7 +128,7 @@ class Discriminator(object):
 class Perceptual_VGG19(object):
     """the definition of VGG19. This network is used for constructing perceptual loss"""
     @staticmethod
-    def build(self, x):
+    def build(x):
         # Block 1
         x = tf.layers.conv2d(x, 64, (3, 3), activation='relu', padding='same', name='block1_conv1')
         x = tf.layers.conv2d(x, 64, (3, 3), activation='relu', padding='same', name='block1_conv2')
