@@ -36,7 +36,7 @@ def set_flags():
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
     Flags.DEFINE_string('perceptual_loss', 'VGG19', 'the part of loss function. "VGG19" or "pixel-wise"')
-    Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions')
+    Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions. "RaGAN or SGAN"')
 
     # About training
     Flags.DEFINE_integer('num_iter', 50000, 'The number of iterations')
@@ -64,6 +64,9 @@ def set_flags():
     Flags.DEFINE_string('pre_train_checkpoint_dir', './pre_train_checkpoint', 'pre-train checkpoint directory')
     Flags.DEFINE_string('checkpoint_dir', './checkpoint', 'checkpoint directory')
     Flags.DEFINE_string('logdir', './log', 'log directory')
+
+    # About GPU setting
+    Flags.DEFINE_string('gpu_dev_num', '0', 'Which GPU to use for multi-GPUs.')
 
     return Flags.FLAGS
 
@@ -149,10 +152,14 @@ def main():
 
     gc.collect()
 
-    # Start Session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
+    config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+            allow_growth=True,
+            visible_device_list=FLAGS.gpu_dev_num
+        )
+    )
 
+    # Start Session
     with tf.Session(config=config) as sess:
         log(logflag, 'Training ESRGAN starts', 'info')
 

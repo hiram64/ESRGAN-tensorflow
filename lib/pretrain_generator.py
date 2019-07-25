@@ -45,8 +45,13 @@ def train_pretrain_generator(FLAGS, LR_train, HR_train, logflag):
 
     gc.collect()
 
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
+    config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+            allow_growth=True,
+            visible_device_list=FLAGS.gpu_dev_num
+        )
+    )
+
     saver = tf.train.Saver(max_to_keep=10)
 
     # Start session

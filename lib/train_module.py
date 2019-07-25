@@ -71,9 +71,11 @@ class Loss(object):
                                                                 labels=tf.ones_like(dis_out_fake)))
 
                     gen_loss = FLAGS.gan_loss_coeff * (g_loss_p1 + g_loss_p2) / 2
-                else:
+                elif FLAGS.gan_loss_type == 'SGAN':
                     gen_loss = FLAGS.gan_loss_coeff * tf.reduce_mean(
                         tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake, labels=tf.ones_like(dis_out_fake)))
+                else:
+                    raise ValueError('Unknown GAN loss function type')
 
                 # content loss : L1 distance
                 content_loss = FLAGS.content_loss_coeff * tf.reduce_mean(
