@@ -71,7 +71,7 @@ class Loss(object):
                                                                 labels=tf.ones_like(dis_out_fake)))
 
                     gen_loss = FLAGS.gan_loss_coeff * (g_loss_p1 + g_loss_p2) / 2
-                elif FLAGS.gan_loss_type == 'SGAN':
+                elif FLAGS.gan_loss_type == 'GAN':
                     gen_loss = FLAGS.gan_loss_coeff * tf.reduce_mean(
                         tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_fake, labels=tf.ones_like(dis_out_fake)))
                 else:
@@ -105,7 +105,7 @@ class Loss(object):
                                                                 labels=tf.zeros_like(dis_out_fake))) / 2
 
                     dis_loss = d_loss_real + d_loss_fake
-                else:
+                elif FLAGS.gan_loss_type == 'GAN':
                     d_loss_real = tf.reduce_mean(
                         tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_out_real, labels=tf.ones_like(dis_out_real)))
                     d_loss_fake = tf.reduce_mean(
@@ -113,6 +113,9 @@ class Loss(object):
                                                                 labels=tf.zeros_like(dis_out_fake)))
 
                     dis_loss = d_loss_real + d_loss_fake
+
+                else:
+                    raise ValueError('Unknown GAN loss function type')
 
             self.summary_target['generator_loss'] = gen_loss
             self.summary_target['content_loss'] = content_loss

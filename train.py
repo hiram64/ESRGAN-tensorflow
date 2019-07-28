@@ -36,7 +36,7 @@ def set_flags():
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
     Flags.DEFINE_string('perceptual_loss', 'VGG19', 'the part of loss function. "VGG19" or "pixel-wise"')
-    Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions. "RaGAN or SGAN"')
+    Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions. "RaGAN or GAN"')
 
     # About training
     Flags.DEFINE_integer('num_iter', 50000, 'The number of iterations')
